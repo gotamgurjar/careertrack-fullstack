@@ -1,0 +1,16 @@
+{
+  "name": "careertrack-fullstack",
+  "version": "1.0.0",
+  "description": "Full-Stack Job Application Tracker built with Node.js, Express & Tailwind CSS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.0.0"
+  }
+}

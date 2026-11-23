@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareerTrack | Full-Stack Job Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div>
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+          CareerTrack Pro
+        </h1>
+        <p class="text-slate-400 text-sm mt-1">Full-Stack Job Application & Interview Pipeline</p>
+      </div>
+      <span class="px-3 py-1 text-xs font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full">
+        Node.js + Express REST API
+      </span>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+        <p class="text-slate-400 text-xs uppercase">Total Applied</p>
+        <h2 id="statTotal" class="text-3xl font-bold mt-1">0</h2>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+        <p class="text-amber-400 text-xs uppercase">Interviews</p>
+        <h2 id="statInterview" class="text-3xl font-bold mt-1 text-amber-400">0</h2>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+        <p class="text-emerald-400 text-xs uppercase">Offers</p>
+        <h2 id="statOffer" class="text-3xl font-bold mt-1 text-emerald-400">0</h2>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+        <p class="text-rose-400 text-xs uppercase">Rejected</p>
+        <h2 id="statRejected" class="text-3xl font-bold mt-1 text-rose-400">0</h2>
+      </div>
+    </div>
+
+    <!-- Form + Chart Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Add Job Form -->
+      <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-xl">
+        <h3 class="text-lg font-semibold mb-4">Add New Application</h3>
+        <form id="jobForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input id="company" type="text" placeholder="Company Name (e.g. Google)" required
+            class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+          <input id="role" type="text" placeholder="Job Role (e.g. Full-Stack Dev)" required
+            class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+          <input id="ctc" type="text" placeholder="Expected CTC (e.g. 10 LPA)"
+            class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+          <select id="status"
+            class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+            <option value="Applied">Applied</option>
+            <option value="Interview">Interview</option>
+            <option value="Offer">Offer</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+          <button type="submit"
+            class="md:col-span-2 bg-indigo-600 hover:bg-indigo-500 transition text-white font-medium py-2.5 rounded-lg text-sm">
+            + Add Application
+          </button>
+        </form>
+      </div>
+
+      <!-- Analytics Chart -->
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col items-center justify-center">
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Application Status</h3>
+        <div class="w-44 h-44">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex flex-col sm:flex-row justify-between gap-3">
+        <h3 class="font-semibold">Your Applications</h3>
+        <input id="searchInput" type="text" placeholder="Search company or role..."
+          class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-500" />
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-800/50 text-slate-400 text-xs uppercase">
+            <tr>
+              <th class="px-5 py-3">Company</th>
+              <th class="px-5 py-3">Role</th>
+              <th class="px-5 py-3">CTC</th>
+              <th class="px-5 py-3">Date</th>
+              <th class="px-5 py-3">Status</th>
+              <th class="px-5 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="jobList" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allJobs = [];
+    let chartInstance = null;
+
+    async function fetchJobs() {
+      const res = await fetch('/api/jobs');
+      allJobs = await res.json();
+      renderUI();
+    }
+
+    function renderUI() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = allJobs.filter(j =>
+        j.company.toLowerCase().includes(query) || j.role.toLowerCase().includes(query)
+      );
+
+      const counts = { Applied: 0, Interview: 0, Offer: 0, Rejected: 0 };
+      allJobs.forEach(j => { if (counts[j.status] !== undefined) counts[j.status]++; });
+
+      document.getElementById('statTotal').innerText = allJobs.length;
+      document.getElementById('statInterview').innerText = counts.Interview;
+      document.getElementById('statOffer').innerText = counts.Offer;
+      document.getElementById('statRejected').innerText = counts.Rejected;
+
+      const tbody = document.getElementById('jobList');
+      tbody.innerHTML = filtered.map(job => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="px-5 py-3.5 font-medium text-white">${job.company}</td>
+          <td class="px-5 py-3.5 text-slate-300">${job.role}</td>
+          <td class="px-5 py-3.5 text-slate-400">${job.ctc}</td>
+          <td class="px-5 py-3.5 text-slate-400">${job.date}</td>
+          <td class="px-5 py-3.5">
+            <select onchange="updateStatus(${job.id}, this.value)"
+              class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+              ${['Applied', 'Interview', 'Offer', 'Rejected'].map(s =>
+                `<option value="${s}" ${job.status === s ? 'selected' : ''}>${s}</option>`
+              ).join('')}
+            </select>
+          </td>
+          <td class="px-5 py-3.5 text-right">
+            <button onclick="deleteJob(${job.id})" class="text-rose-400 hover:text-rose-300 text-xs font-medium">
+              Delete
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      updateChart(counts);
+    }
+
+    function updateChart(counts) {
+      const ctx = document.getElementById('statusChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Applied', 'Interview', 'Offer', 'Rejected'],
+          datasets: [{
+            data: [counts.Applied, counts.Interview, counts.Offer, counts.Rejected],
+            backgroundColor: ['#6366f1', '#f59e0b', '#10b981', '#f43f5e'],
+            borderWidth: 0
+          }]
+        },
+        options: { plugins: { legend: { display: false } }, cutout: '70%' }
+      });
+    }
+
+    document.getElementById('jobForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company: document.getElementById('company').value,
+          role: document.getElementById('role').value,
+          ctc: document.getElementById('ctc').value,
+          status: document.getElementById('status').value
+        })
+      });
+      e.target.reset();
+      fetchJobs();
+    });
+
+    async function updateStatus(id, status) {
+      await fetch(`/api/jobs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      fetchJobs();
+    }
+
+    async function deleteJob(id) {
+      await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+      fetchJobs();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderUI);
+    fetchJobs();
+  </script>
+</body>
+</html>

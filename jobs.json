@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "company": "TCS Digital",
+    "role": "Full-Stack Developer",
+    "status": "Interview",
+    "ctc": "7.5 LPA",
+    "date": "2026-11-20"
+  },
+  {
+    "id": 2,
+    "company": "Zomato",
+    "role": "Backend Engineer (Node.js)",
+    "status": "Applied",
+    "ctc": "12 LPA",
+    "date": "2026-11-22"
+  },
+  {
+    "id": 3,
+    "company": "Infosys",
+    "role": "Software Engineer",
+    "status": "Offer",
+    "ctc": "6.5 LPA",
+    "date": "2026-11-15"
+  }
+]
